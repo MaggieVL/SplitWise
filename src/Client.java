@@ -1,8 +1,21 @@
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
+
+/*
+    connect localhost 8080 Maggie
+    register Maggie parolka
+    login Maggie parolka
+    
+    connect localhost 8080 Tanya
+    register Tanya stefko
+    login Tanya stefko
+
+    connect localhost 8080 Toni 
+    register Toni Plamen
+    login Toni Plamen
+*/
 
 public class Client {
     // private BufferedReader reader;
@@ -22,52 +35,49 @@ public class Client {
                 String[] splitLine = line.split(" ");
                 String command = splitLine[index++];
 
-                if ("register".equals(command)) {
-                    if (splitLine.length == 5) {
+                if ("connect".equals(command)) {
+                    if (splitLine.length == 4) {
                         String host = splitLine[index++];
                         int port = Integer.parseInt(splitLine[index++]);
                         String username = splitLine[index++];
-                        String password = splitLine[index];
 
-                        register(host, port, username, password);
+                        connect(host, port, username);
+
                     } else {
-                        System.out.println("Invalid input");
+                        System.out.println("=> invalid input");
+                        System.out.println();
                     }
+
+                } else if ("disconnect".equals(command)) {
+                    writer.println("disconnect");
+                    writer.close();
+                    break;
+
+                } else {
+                    writer.println(line);
                     continue;
+
                 }
 
-                if (writer != null) {
-                    if ("disconnect".equals(command)) {
-
-                        writer.println("disconnect");
-                        writer.close();
-                        break;
-                    } else {// a server command is received
-
-                        writer.println(line);
-                        continue;
-                    }
-                }else {
-                    System.out.println("You must register first");
-                }
             }
         }
     }
 
-    private void register(String host, int port, String username, String password) {
-        try {// Server.containsUser() or:
+    private void connect(String host, int port, String username) {
+        try {
             Socket socket = new Socket(host, port);
-            writer = new PrintWriter(socket.getOutputStream(), true);
+            System.out.println("=> connected successfully");
 
-            System.out.println("username: " + username);
-            System.out.println("password: " + password);
-            writer.println("register " + username + " " + password);
+            writer = new PrintWriter(socket.getOutputStream(), true);
+            writer.println("connect " + username);
 
             ServerConnectionHandler runnable = new ServerConnectionHandler(socket);
             new Thread(runnable).start();
 
         } catch (IOException e) {
-            System.out.println("=> cannot connect to server on localhost:8080, make sure that the server is started");
+            System.err.println("=> cannot connect to server on localhost:8080, make sure that the server is started");
+            System.out.println();
         }
+
     }
 }

@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class ClientConnectionHandler implements Runnable {
 
@@ -29,23 +30,72 @@ public class ClientConnectionHandler implements Runnable {
         // commands
         try {
             while (true) {
-                String response = reader.readLine();
+                String line = reader.readLine();
+                String[] splitLine = line.split(" ");
 
-                if (response.equals("disconnect")) {
-                    System.out.println("Client " + username + " sends exit...");
-                    System.out.println("Closing this connection.");
+                int index = 0;
+                String command = splitLine[index++];
+                if ("disconnect".equals(command)) {
+                    System.out.println("=> client " + username + " wants to disconnect...");
+                    System.out.println("=> closing this connection.");
 
                     socket.close();
                     writer.close();
                     reader.close();
 
-                    System.out.println("Connection closed");
+                    System.out.println("=> connection closed");
                     break;
+
+                } else if ("register".equals(command)) {
+                    if (splitLine.length == 3) {
+                        String username = splitLine[index++];
+                        String password = splitLine[index];
+
+                        Server.register(username, password, writer);
+
+                    } else {
+                        writer.println("=> invalid input");
+                    }
+
+                } else if ("login".equals(command)) {
+                    if (splitLine.length == 3) {
+                        String username = splitLine[index++];
+                        String password = splitLine[index];
+
+                        Server.login(username, password, writer);
+                    } else {
+                        writer.println("=> invalid input");
+                    }
+
+                } else if ("add-friend".equals(command)) {
+                    if (splitLine.length == 2) {
+                        String friendUsername = splitLine[index];
+
+                        Server.addFriendTo(username, friendUsername, writer);
+                    } else {
+                        writer.println("=> invalid input");
+                    }
+                } else if ("create-group".equals(command)) {
+                    System.out.println("in thread: ");
+                    System.out.println("splitLine.length: " + splitLine.length);
+
+                    if (splitLine.length >= 5) {
+                        String name = splitLine[index++];
+                        ArrayList<String> members = new ArrayList<>();
+
+                        for (int i = index; i < splitLine.length; i++) {
+                            members.add(splitLine[i]);
+                            System.out.println("member[" + i + "]= " + splitLine[i]);
+                        }
+
+                        Server.createGroup(name, members, writer);
+                    } else {
+                        writer.println("=> invalid input - groups must contain at least 3 people");
+                    }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 }
