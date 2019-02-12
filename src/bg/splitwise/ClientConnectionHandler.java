@@ -1,3 +1,4 @@
+package bg.splitwise;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -91,6 +92,17 @@ public class ClientConnectionHandler implements Runnable {
                         Server.createGroup(name, members, writer);
                     } else {
                         writer.println("=> invalid input - groups must contain at least 3 people");
+                    }
+                } else if ("split".equals(command)) {
+                    if (splitLine.length >= 4) {
+                        double amount=Double.parseDouble(splitLine[index++]);
+                        String username=splitLine[index];
+                        index=command.length()+splitLine[1].length()+username.length()+3;
+                        String reasonForPayment=line.substring(index);
+                        
+                        Server.split(amount, username, this.username, reasonForPayment, writer);
+                    } else {
+                        writer.println("=> invalid input");
                     }
                 }
             }

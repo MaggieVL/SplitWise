@@ -1,3 +1,4 @@
+package bg.splitwise;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -10,7 +11,12 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.Inflater;
+
+import javax.xml.parsers.DocumentBuilder;
 
 // class Group extended by Friends
 // add factory for the commands 
@@ -19,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 // create exceptions
 // use more lambda functions
 //make a separate function for writing to files
+//how to store currencies
 
 public class Server {
 
@@ -28,7 +35,9 @@ public class Server {
     private static ConcurrentHashMap<String, Socket> onlineUsers = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, ArrayList<String>> friendLists = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, ArrayList<String>> groups = new ConcurrentHashMap<>();
-
+    private static ConcurrentHashMap<String, ArrayList<Debt>> debts = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, BlockingQueue<String>> notifications = new ConcurrentHashMap<>();
+    
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.printf("server is running on localhost:%d%n", PORT);
@@ -127,9 +136,14 @@ public class Server {
         }
     }
 
-    @SuppressWarnings({ "unlikely-arg-type", "unused" })
-    private static boolean hasFriend(String username, String friend) {
-        return friendLists.get(username).stream().equals(friend);
+    private static boolean areFriends(String username, String friend) {
+        for(String friendUsername : friendLists.get(username)) {
+            if(friendUsername.equals(friend)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     public static void addFriendTo(String username, String friend, PrintWriter writer) {
@@ -143,7 +157,7 @@ public class Server {
         } else if (!registeredUsers.containsKey(friend)) {
             writer.println("=> " + friend + " is not a registered user");
 
-        } else if (hasFriend(username, friend)) {
+        } else if (areFriends(username, friend)) {
             writer.println("=> friend already in friend list");
 
         } else if (username.equals(friend)) {
@@ -154,12 +168,15 @@ public class Server {
             ArrayList<String> friendList1 = friendLists.get(username);
             friendList1.add(friend);
             friendLists.put(username, friendList1);
-
+            
             // add username to friend map
             ArrayList<String> friendList2 = friendLists.get(friend);
             friendList2.add(username);
             friendLists.put(friend, friendList2);
-
+            
+            System.out.println("areFriends(username, friend): "+areFriends(username, friend));
+            System.out.println("areFriends(friend, username): "+areFriends(friend, username));
+            
             // add friend to username file
             File usernameFile = new File("SplitWise\\Server\\" + username + "\\friendList.txt");
             try (FileWriter fw = new FileWriter(usernameFile.getAbsoluteFile(), true);
@@ -189,6 +206,7 @@ public class Server {
                 bufferedWriter.write("username: " + username);
                 bufferedWriter.newLine();
 
+                
             } catch (IOException e) {
                 e.getMessage();
             }
@@ -241,6 +259,25 @@ public class Server {
             }
 
             writer.println("=> group " + name + " created successfully");
+        }
+    }
+
+    public static void split(double amount, String debtor, String creditor, String reasonForPayment,
+            PrintWriter writer) {
+        if (!areFriends(creditor, debtor)) {
+            writer.println("=> you can split sums only with friends");
+
+        } else {
+            try {
+                Socket debtorSocket=onlineUsers.get(debtor);
+                PrintWriter debtorWriter=new PrintWriter(debtorSocket.getOutputStream(), true);
+                debtorWriter.println("=> you owe "+creditor+" "+amount+" LV");
+                
+                writer.println("=> amount added successfully");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 }

@@ -1,3 +1,4 @@
+package bg.splitwise;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -11,7 +12,9 @@ import java.util.Scanner;
     connect localhost 8080 Tanya
     register Tanya stefko
     login Tanya stefko
-
+    add-friend Maggie
+    split 20.5 Maggie [Birthday presents]
+    
     connect localhost 8080 Toni 
     register Toni Plamen
     login Toni Plamen
